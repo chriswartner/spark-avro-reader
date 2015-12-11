@@ -5,7 +5,7 @@ object Spark {
 
   // Spark configuration
   private val conf = new SparkConf()
-    .setAppName("diesunddas")
+    .setAppName("spark-avro-reader")
     .setMaster("local[*]")
 
   val context = new SparkContext(conf)
@@ -18,8 +18,9 @@ object Spark {
 
 
   def loadAvro(file: String) : DataFrame = {
-
-    null
+    Spark.sql.read
+      .format("com.databricks.spark.avro")
+      .load(file)
   }
 
   def loadCsvSemi(file: String) = {
