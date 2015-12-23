@@ -1,3 +1,6 @@
+import java.io.{File, FileWriter}
+
+import com.univocity.parsers.csv.{CsvWriter, CsvWriterSettings}
 import org.apache.spark.sql.{DataFrame, SQLContext}
 import org.apache.spark.{SparkConf, SparkContext}
 
@@ -16,8 +19,31 @@ object Spark {
     context.stop()
   }
 
+  def writeCommaCSV(dataFrame: DataFrame, file: String) = {
 
-  def loadAvro(file: String) : DataFrame = {
+    val settings = new CsvWriterSettings
+    settings.setQuoteAllFields(true)
+
+    val out = new FileWriter(new File(file))
+    val writer = new CsvWriter(out, settings)
+    val headers = dataFrame.columns.mkString(",")
+
+    writer.writeRow(headers)
+    dataFrame.collect().foreach(row =>
+      writer.writeRow(row.mkString(","))
+    )
+    writer.close()
+    out.close()
+
+  }
+
+  def loadAvro(file: String): DataFrame = {
+    Spark.sql.read
+      .format("com.databricks.spark.avro")
+      .load(file)
+  }
+
+  def loadAvroFolder(file: String): DataFrame = {
     Spark.sql.read
       .format("com.databricks.spark.avro")
       .load(file)
