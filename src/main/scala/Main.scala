@@ -18,23 +18,25 @@ import scala.util.Random
 
 object Main extends App {
 
+  val attributes = "" :: ""
+  
+  val attribute = ""
+  
+  val schemaLocation = ""
+  
+  val dataLocation = ""
 
+  val data = Spark.loadAvro(dataLocation)
 
-  val data = Spark.loadAvro("/data/data.avro")
-
-  data.printSchema()
-
-
-
-  val schema = new Parser().parse(new FileInputStream("/data/schema.avsc"))
+  val schema = new Parser().parse(new FileInputStream(schemaLocation))
 
   val descriptor = new DatasetDescriptor.Builder().schema(schema).build()
 
-  val records = Datasets.create("dataset:file:/data/v1", descriptor).asInstanceOf[View[GenericRecord]]
-
-  val path = new Path("/data","v1")
+  val records = Datasets.create("dataset:file:" + dataLocation, descriptor).asInstanceOf[View[GenericRecord]]
 
   val fileSystem = new LocalFileSystem()
+
+  data.printSchema()
 
   val reader = records.newReader() //.asInstanceOf[DatasetWriter[GenericRecord]]
 
@@ -42,11 +44,7 @@ object Main extends App {
   while (reader.hasNext ) {
     val record = reader.next
 
-//    val fields : Array[Schema.Field] = schema.getFields.toArray.map( _.asInstanceOf[Schema.Field])
-//
-//    fields.foreach(field => Console.out.println(field.name().toString + "\t"))
-
-    if (record.get("type_name").equals("AppUsage") || record.get("type_name").equals("WebUsage") ) {
+    if (attributes.contains(record.get(attribute).toString) ) {
       counter += 1
     }
   }
@@ -55,32 +53,3 @@ object Main extends App {
 
   Console.out.println("Record count: " + counter)
 
-
-
-
-//
-//  var data = Spark.loadCsvComma("/data/geoknow/order.csv")
-//  var dataNew : DataFrame = _
-//  var dataOut : DataFrame = data
-//
-//  data.show()
-//
-//  data = data.withColumn( "orderDate", data("orderDate").cast(StringType))
-//
-//  Console.out.println(data.count())
-//
-//  for( year <- 2000 until 2013){
-//    val udfReplaceYear = udf((x: String) => {x.replace( 2014.toString,year.toString)})
-//    val udfAppendYear = udf((x: String) => { x + year.toString})
-//    dataNew = data.withColumn("orderDate", udfReplaceYear( data("orderDate")) )
-//      .withColumn("order", udfAppendYear(data("order")) )
-//    dataOut = dataOut.unionAll(dataNew)
-//  }
-//
-//
-//  dataOut = dataOut.dropDuplicates()
-//
-//  Spark.writeCommaCSV(dataOut, "/data/geoknow/order_new.csv")
-
-
-}
