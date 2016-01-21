@@ -21,9 +21,6 @@ object Spark {
 
   def writeCommaCSV(dataFrame: DataFrame, file: String) = {
 
-    val settings = new CsvWriterSettings
-    settings.setQuoteAllFields(true)
-
     val out = new FileWriter(new File(file))
     val writer = new CsvWriter(out, settings)
     val headers = dataFrame.columns.mkString(",")
@@ -38,12 +35,6 @@ object Spark {
   }
 
   def loadAvro(file: String): DataFrame = {
-    Spark.sql.read
-      .format("com.databricks.spark.avro")
-      .load(file)
-  }
-
-  def loadAvroFolder(file: String): DataFrame = {
     Spark.sql.read
       .format("com.databricks.spark.avro")
       .load(file)
