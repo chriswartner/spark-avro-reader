@@ -10,8 +10,8 @@ lazy val root = (project in file("."))
   .settings(
     name := "spark-avro-reader",
     mainClass in Compile := Some("main.scala.GroupByCustomerGroup"),
-    libraryDependencies += "org.apache.spark" %% "spark-core" % "1.4.1",
-    libraryDependencies += "org.apache.spark" %% "spark-sql" % "1.4.1",
+    libraryDependencies += "org.apache.spark" %% "spark-core" % "1.6.0",
+    libraryDependencies += "org.apache.spark" %% "spark-sql" % "1.6.0",
     libraryDependencies += "com.databricks" % "spark-csv_2.11" % "1.2.0",
     libraryDependencies += "com.github.tototoshi" %% "scala-csv" % "1.2.2",
     libraryDependencies += "com.databricks" %% "spark-avro" % "2.0.1",

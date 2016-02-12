@@ -3,6 +3,7 @@ import java.io.{File, FileWriter}
 import com.univocity.parsers.csv.{CsvWriter, CsvWriterSettings}
 import org.apache.spark.sql.{DataFrame, SQLContext}
 import org.apache.spark.{SparkConf, SparkContext}
+import com.databricks.spark.avro._
 
 object Spark {
 
@@ -38,9 +39,13 @@ object Spark {
   }
 
   def loadAvro(file: String): DataFrame = {
-    Spark.sql.read
-      .format("com.databricks.spark.avro")
-      .load(file)
+//    Spark.sql.read
+//      .format("com.databricks.spark.avro")
+//      .load(file)
+//    sql.setConf("spark.sql.avro.compression.codec", "deflate")
+//    sql.setConf("spark.sql.avro.deflate.level", "5")
+
+    sql.read.avro(file)
   }
 
   def loadAvroFolder(file: String): DataFrame = {

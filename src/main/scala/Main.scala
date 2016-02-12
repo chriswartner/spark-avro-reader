@@ -1,86 +1,137 @@
 
 import java.io.FileInputStream
+import java.util.Properties
 
-import com.github.tototoshi.csv.{DefaultCSVFormat, CSVWriter}
-import org.apache.spark.sql.DataFrame
-import org.apache.spark.sql.functions._
-import org.apache.spark.sql.types.{StringType, FloatType, IntegerType}
+import org.apache.avro.Schema.{Field, Parser}
+import org.apache.avro.generic.GenericRecord
+import org.apache.hadoop.fs.{LocalFileSystem, Path}
+import org.apache.spark
+import org.apache.spark.sql.{DataFrame, Row}
+import org.apache.spark.sql.types.{IntegerType, StringType, StructType}
 import org.kitesdk.data._
-import java.io.FileInputStream
-import org.apache.avro.Schema
-import org.apache.avro.Schema.Parser
-import org.apache.avro.generic.{GenericRecord, GenericRecordBuilder}
-import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.fs.{LocalFileSystem, FileSystem, Path}
-import org.kitesdk.data.spi.filesystem.InputFormatReader
-import scala.compat.Platform
-import scala.util.Random
+
+import scala.collection.JavaConversions._
+import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
 
 object Main extends App {
 
 
+  val properties = new Properties()
+  properties.load(this.getClass.getResourceAsStream("config.properties"))
 
-  val data = Spark.loadAvro("/data/data.avro")
+  // print properties
+  Console.out.println("Properties:")
+  properties.keysIterator.foreach(property => {
+    Console.out.println(property + " = " + properties.get(property))
+  })
 
-  data.printSchema()
+  // load data
+  val data = Spark.loadAvro(properties.get("fileLocation").toString)
 
+  // count distinct values for attributes
+  if (properties.get("mode").toString.contains("count")) {
 
+    val tStart = java.util.Calendar.getInstance().getTimeInMillis
 
-  val schema = new Parser().parse(new FileInputStream("/data/schema.avsc"))
+    val countAttributes: ListBuffer[String] = new ListBuffer[String]
+    properties.getProperty("countDistinctValues").toString.split(",").foreach(x => countAttributes += x)
 
-  val descriptor = new DatasetDescriptor.Builder().schema(schema).build()
+//    countAttributes.foreach(attribute => {
+//      Console.out.println("\rDistinct values for " + attribute)
+//      data.groupBy("type_name").count().show()
+//      Console.out.println()
+//    })
 
-  val records = Datasets.create("dataset:file:/data/v1", descriptor).asInstanceOf[View[GenericRecord]]
+    Console.out.println("\n\rTime for counting: " + (java.util.Calendar.getInstance().getTimeInMillis - tStart) / 1000)
 
-  val path = new Path("/data","v1")
-
-  val fileSystem = new LocalFileSystem()
-
-  val reader = records.newReader() //.asInstanceOf[DatasetWriter[GenericRecord]]
-
-  var counter = 0
-  while (reader.hasNext ) {
-    val record = reader.next
-
-//    val fields : Array[Schema.Field] = schema.getFields.toArray.map( _.asInstanceOf[Schema.Field])
-//
-//    fields.foreach(field => Console.out.println(field.name().toString + "\t"))
-
-    if (record.get("type_name").equals("AppUsage") || record.get("type_name").equals("WebUsage") ) {
-      counter += 1
-    }
   }
 
-  reader.close()
+  // count_occurrences operation
+  if (properties.get("mode").toString.contains("count_occurrences")) {
 
-  Console.out.println("Record count: " + counter)
+    val tStart = java.util.Calendar.getInstance().getTimeInMillis
+
+    val countAttributes: ListBuffer[String] = new ListBuffer[String]
+    properties.getProperty("countOccurrences").toString.split(",").foreach(x => countAttributes += x)
+    Console.out.println("Counting attributes:")
+    Console.out.println(countAttributes.mkString(",\n "))
+    Console.out.println()
+
+    val indexAttributeMap = new mutable.HashMap[String, Int]()
+    data.schema.fieldNames.foreach(field => indexAttributeMap.put(field, data.schema.fieldIndex(field)))
+//
+//    val f = spark.sql.functions.udf((s: String) => {
+//      if (s != null && !s.equalsIgnoreCase("null")) 1
+//      else 0
+//    })
+//
+//    val countColumns = countAttributes.map(data(_))
+//    val projecttedData = data.select(countColumns.toSeq: _*)
+//
+//    countAttributes.foreach(attribute => {
+//
+//      val singleAttributeCount = projecttedData.withColumn(attribute + "_occurence", f(projecttedData(attribute)))
+//        .groupBy(attribute + "_occurence").sum(attribute + "_occurence")
+//      val filteredSingleAttributeCount = singleAttributeCount.filter(singleAttributeCount(attribute + "_occurence") > 0)
+//
+//      if (filteredSingleAttributeCount.count() > 0)
+//        Console.out.println("\r" + attribute + ": " + filteredSingleAttributeCount.head()(1))
+//      else
+//        Console.out.println("\r" + attribute + ": 0")
+//
+//    })
+//
+//    Console.out.println("\n\rTime for counting: " + (java.util.Calendar.getInstance().getTimeInMillis - tStart) / 1000)
+
+    val tStart3 = java.util.Calendar.getInstance().getTimeInMillis
+
+    val sum = data.map( row => {
+      val countList = new ListBuffer[Long]
+      countAttributes.foreach( attribute => {
+        val value = row.getString(indexAttributeMap(attribute))
+        if ( value != null && !value.equalsIgnoreCase("null") )
+          countList += 1
+        else
+          countList += 0
+      } )
+
+      Row.fromSeq(countList.toSeq)
+
+    }).reduce( (r1,r2) => {
+      var sum : List[Long] = Nil
+
+      for ( i <- 0 to r1.size - 1) {
+        sum = r1.getLong(i) + r2.getLong(i) :: sum
+      }
+
+      Row.fromSeq(sum.toSeq)
+    } )
+
+
+    val attributeArray = countAttributes.toArray
+    for ( i <- 0 to sum.size - 1) {
+      Console.out.println("\r " + attributeArray(i) + ": " + sum.getLong(i) )
+    }
 
 
 
 
-//
-//  var data = Spark.loadCsvComma("/data/geoknow/order.csv")
-//  var dataNew : DataFrame = _
-//  var dataOut : DataFrame = data
-//
-//  data.show()
-//
-//  data = data.withColumn( "orderDate", data("orderDate").cast(StringType))
-//
-//  Console.out.println(data.count())
-//
-//  for( year <- 2000 until 2013){
-//    val udfReplaceYear = udf((x: String) => {x.replace( 2014.toString,year.toString)})
-//    val udfAppendYear = udf((x: String) => { x + year.toString})
-//    dataNew = data.withColumn("orderDate", udfReplaceYear( data("orderDate")) )
-//      .withColumn("order", udfAppendYear(data("order")) )
-//    dataOut = dataOut.unionAll(dataNew)
-//  }
-//
-//
-//  dataOut = dataOut.dropDuplicates()
-//
-//  Spark.writeCommaCSV(dataOut, "/data/geoknow/order_new.csv")
+    Console.out.println("Time for counting: " + (java.util.Calendar.getInstance().getTimeInMillis - tStart3) / 1000)
+
+  }
+
+
+
+
+
+  // filter
+  if (properties.get("mode").toString.contains("filter")) {
+    val filterAttribute = properties.get("filterAttribute")
+    val filterValue = properties.get("filterValue")
+    val filterOperator = properties.get("filterOperator")
+    Console.out.println(filterAttribute + " " + filterOperator + " " + filterValue)
+  }
 
 
 }
