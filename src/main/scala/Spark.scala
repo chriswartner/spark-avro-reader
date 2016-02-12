@@ -39,19 +39,10 @@ object Spark {
   }
 
   def loadAvro(file: String): DataFrame = {
-//    Spark.sql.read
-//      .format("com.databricks.spark.avro")
-//      .load(file)
 //    sql.setConf("spark.sql.avro.compression.codec", "deflate")
 //    sql.setConf("spark.sql.avro.deflate.level", "5")
 
     sql.read.avro(file)
-  }
-
-  def loadAvroFolder(file: String): DataFrame = {
-    Spark.sql.read
-      .format("com.databricks.spark.avro")
-      .load(file)
   }
 
   def loadCsvSemi(file: String) = {

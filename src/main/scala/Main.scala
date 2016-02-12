@@ -16,7 +16,6 @@ import scala.collection.mutable.ListBuffer
 
 object Main extends App {
 
-
   val properties = new Properties()
   properties.load(this.getClass.getResourceAsStream("config.properties"))
 
@@ -37,11 +36,11 @@ object Main extends App {
     val countAttributes: ListBuffer[String] = new ListBuffer[String]
     properties.getProperty("countDistinctValues").toString.split(",").foreach(x => countAttributes += x)
 
-//    countAttributes.foreach(attribute => {
-//      Console.out.println("\rDistinct values for " + attribute)
-//      data.groupBy("type_name").count().show()
-//      Console.out.println()
-//    })
+    //    countAttributes.foreach(attribute => {
+    //      Console.out.println("\rDistinct values for " + attribute)
+    //      data.groupBy("type_name").count().show()
+    //      Console.out.println()
+    //    })
 
     Console.out.println("\n\rTime for counting: " + (java.util.Calendar.getInstance().getTimeInMillis - tStart) / 1000)
 
@@ -60,78 +59,76 @@ object Main extends App {
 
     val indexAttributeMap = new mutable.HashMap[String, Int]()
     data.schema.fieldNames.foreach(field => indexAttributeMap.put(field, data.schema.fieldIndex(field)))
-//
-//    val f = spark.sql.functions.udf((s: String) => {
-//      if (s != null && !s.equalsIgnoreCase("null")) 1
-//      else 0
-//    })
-//
-//    val countColumns = countAttributes.map(data(_))
-//    val projecttedData = data.select(countColumns.toSeq: _*)
-//
-//    countAttributes.foreach(attribute => {
-//
-//      val singleAttributeCount = projecttedData.withColumn(attribute + "_occurence", f(projecttedData(attribute)))
-//        .groupBy(attribute + "_occurence").sum(attribute + "_occurence")
-//      val filteredSingleAttributeCount = singleAttributeCount.filter(singleAttributeCount(attribute + "_occurence") > 0)
-//
-//      if (filteredSingleAttributeCount.count() > 0)
-//        Console.out.println("\r" + attribute + ": " + filteredSingleAttributeCount.head()(1))
-//      else
-//        Console.out.println("\r" + attribute + ": 0")
-//
-//    })
-//
-//    Console.out.println("\n\rTime for counting: " + (java.util.Calendar.getInstance().getTimeInMillis - tStart) / 1000)
+    //
+    //    val f = spark.sql.functions.udf((s: String) => {
+    //      if (s != null && !s.equalsIgnoreCase("null")) 1
+    //      else 0
+    //    })
+    //
+    //    val countColumns = countAttributes.map(data(_))
+    //    val projecttedData = data.select(countColumns.toSeq: _*)
+    //
+    //    countAttributes.foreach(attribute => {
+    //
+    //      val singleAttributeCount = projecttedData.withColumn(attribute + "_occurence", f(projecttedData(attribute)))
+    //        .groupBy(attribute + "_occurence").sum(attribute + "_occurence")
+    //      val filteredSingleAttributeCount = singleAttributeCount.filter(singleAttributeCount(attribute + "_occurence") > 0)
+    //
+    //      if (filteredSingleAttributeCount.count() > 0)
+    //        Console.out.println("\r" + attribute + ": " + filteredSingleAttributeCount.head()(1))
+    //      else
+    //        Console.out.println("\r" + attribute + ": 0")
+    //
+    //    })
+    //
+    //    Console.out.println("\n\rTime for counting: " + (java.util.Calendar.getInstance().getTimeInMillis - tStart) / 1000)
 
     val tStart3 = java.util.Calendar.getInstance().getTimeInMillis
 
-    val sum = data.map( row => {
+    val sum = data.map(row => {
       val countList = new ListBuffer[Long]
-      countAttributes.foreach( attribute => {
+      countAttributes.foreach(attribute => {
         val value = row.getString(indexAttributeMap(attribute))
-        if ( value != null && !value.equalsIgnoreCase("null") )
+        if (value != null && !value.equalsIgnoreCase("null"))
           countList += 1
         else
           countList += 0
-      } )
+      })
 
       Row.fromSeq(countList.toSeq)
 
-    }).reduce( (r1,r2) => {
-      var sum : List[Long] = Nil
+    }).reduce((r1, r2) => {
+      var sum: List[Long] = Nil
 
-      for ( i <- 0 to r1.size - 1) {
+      for (i <- 0 to r1.size - 1) {
         sum = r1.getLong(i) + r2.getLong(i) :: sum
       }
 
       Row.fromSeq(sum.toSeq)
-    } )
+    })
 
 
     val attributeArray = countAttributes.toArray
-    for ( i <- 0 to sum.size - 1) {
-      Console.out.println("\r " + attributeArray(i) + ": " + sum.getLong(i) )
+    for (i <- 0 to sum.size - 1) {
+      Console.out.println("\r " + attributeArray(i) + ": " + sum.getLong(i))
+
+      Console.out.println("Time for counting: " + (java.util.Calendar.getInstance().getTimeInMillis - tStart3) / 1000)
+
     }
 
 
 
 
-    Console.out.println("Time for counting: " + (java.util.Calendar.getInstance().getTimeInMillis - tStart3) / 1000)
+
+    // filter
+    if (properties.get("mode").toString.contains("filter")) {
+      val filterAttribute = properties.get("filterAttribute")
+      val filterValue = properties.get("filterValue")
+      val filterOperator = properties.get("filterOperator")
+      Console.out.println(filterAttribute + " " + filterOperator + " " + filterValue)
+    }
+
 
   }
-
-
-
-
-
-  // filter
-  if (properties.get("mode").toString.contains("filter")) {
-    val filterAttribute = properties.get("filterAttribute")
-    val filterValue = properties.get("filterValue")
-    val filterOperator = properties.get("filterOperator")
-    Console.out.println(filterAttribute + " " + filterOperator + " " + filterValue)
-  }
-
 
 }
