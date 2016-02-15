@@ -41,8 +41,11 @@ object Spark {
   def loadAvro(file: String): DataFrame = {
 //    sql.setConf("spark.sql.avro.compression.codec", "deflate")
 //    sql.setConf("spark.sql.avro.deflate.level", "5")
-
     sql.read.avro(file)
+  }
+
+  def storeAvro(df: DataFrame, directory: String): Unit = {
+    df.coalesce(1).write.format("com.databricks.spark.avro").save(directory)
   }
 
   def loadCsvSemi(file: String) = {
