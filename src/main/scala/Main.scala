@@ -26,6 +26,8 @@ object Main extends App {
     // count distinct values for attributes
     if (properties.get("mode").toString.contains("count")) {
 
+        Console.out.println("\rCOUNT OPERATION")
+
         val tStart = java.util.Calendar.getInstance().getTimeInMillis
 
         val countAttributes: ListBuffer[String] = new ListBuffer[String]
@@ -43,6 +45,8 @@ object Main extends App {
 
     // count_occurrences operation
     if (properties.get("mode").toString.contains("count_occurrences")) {
+
+        Console.out.println("\rCOUNT_OCCURRENCES OPERATION")
 
         val tStart = java.util.Calendar.getInstance().getTimeInMillis
 
@@ -118,15 +122,16 @@ object Main extends App {
 
     // filter
     if (properties.get("mode").toString.contains("filter")) {
+
+        Console.out.println("\rFILTER OPERATION")
+
         val filterAttribute = properties.get("filterAttribute").toString
         val filterValue = properties.get("filterValue").toString
         val filterOperator = properties.get("filterOperator").toString
+
         Console.out.println(filterAttribute + " " + filterOperator + " " + filterValue)
         Console.out.println()
         Console.out.println("\rSize before filtering: " + data.count())
-
-
-
 
         if (filterOperator.equalsIgnoreCase("not")) {
 
@@ -157,9 +162,19 @@ object Main extends App {
 
         Console.out.println("\rSize after filtering: " + data.count())
 
-        Spark.storeAvro(data, properties.get("outputLocation").toString)
+    }
+
+    if (properties.get("mode").toString.contains("limit")) {
+
+        Console.out.println("FILTER OPERATION")
+
+        val limit = properties.get("limit").toString.toInt
+        Console.out.println("Limit data to " + limit + " records")
+        Console.out.println()
+
+        data = data.limit(limit)
 
     }
 
-
+    Spark.storeAvro(data, properties.get("outputLocation").toString)
 }
